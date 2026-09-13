@@ -575,7 +575,7 @@ export function AddFirstQuestStep({ initialAttribute, onComplete }: AddFirstQues
                         <span className="text-primary font-medium">+{currentRewards.xp} XP</span>
                       </div>
                       <Link
-                        href="/"
+                        href="/dashboard"
                         onClick={onComplete}
                         className="text-primary hover:text-white transition-colors font-medium flex items-center gap-1 group"
                       >

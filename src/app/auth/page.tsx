@@ -17,7 +17,12 @@ function AuthContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{
+    name?: string;
+    email?: string;
+    password?: string;
+    general?: string;
+  }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<string | null>(null);
 
@@ -54,9 +59,9 @@ function AuthContent() {
     setSubmitStatus(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newErrors: { name?: string; email?: string; password?: string } = {};
+    const newErrors: { name?: string; email?: string; password?: string; general?: string } = {};
 
     if (mode === "signup" && !name.trim()) {
       newErrors.name = "Please provide your name.";
@@ -76,14 +81,52 @@ function AuthContent() {
       setIsSubmitting(true);
       setSubmitStatus(mode === "signin" ? "Authenticating..." : "Initializing...");
 
-      setTimeout(() => {
+      try {
+        const { createClient } = await import("@/lib/supabase/client");
+        const supabase = createClient();
+
+        if (mode === "signup") {
+          const { error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: {
+                full_name: name,
+              },
+            },
+          });
+
+          if (error) {
+            setErrors({ general: error.message });
+            setIsSubmitting(false);
+            setSubmitStatus(null);
+            return;
+          }
+        } else {
+          const { error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+
+          if (error) {
+            setErrors({ general: error.message });
+            setIsSubmitting(false);
+            setSubmitStatus(null);
+            return;
+          }
+        }
+
         setSubmitStatus("Aligned");
         setTimeout(() => {
           setIsSubmitting(false);
           setSubmitStatus(null);
           router.push("/onboarding");
-        }, 800);
-      }, 700);
+        }, 600);
+      } catch (err: unknown) {
+        setErrors({ general: err instanceof Error ? err.message : "Authentication failed." });
+        setIsSubmitting(false);
+        setSubmitStatus(null);
+      }
     }
   };
 
@@ -101,7 +144,15 @@ function AuthContent() {
             </span>
           </Link>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/onboarding"
+              className="flex items-center gap-1.5 font-mono text-xs text-primary/80 hover:text-primary transition-colors py-1.5 px-3 rounded-lg hover:bg-surface-container"
+            >
+              <span>Skip for now</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+            <div className="h-3 w-px bg-outline-variant/40 hidden sm:block" />
             <Link
               href="/"
               className="flex items-center gap-1.5 font-mono text-xs text-on-surface-variant hover:text-on-surface transition-colors py-1.5 px-3 rounded-lg hover:bg-surface-container"
@@ -206,6 +257,11 @@ function AuthContent() {
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
+              {errors.general && (
+                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
+                  {errors.general}
+                </div>
+              )}
               {/* Full Name Field (Sign Up only) */}
               <AnimatePresence initial={false}>
                 {mode === "signup" && (
@@ -395,6 +451,18 @@ function AuthContent() {
               </svg>
               <span>Continue with Google</span>
             </button>
+
+            {/* Guest / Skip CTA */}
+            <div className="mt-2.5">
+              <button
+                type="button"
+                onClick={() => router.push("/onboarding")}
+                className="w-full py-2.5 px-4 bg-surface-container/40 hover:bg-surface-container border border-outline-variant/30 hover:border-outline-variant/60 text-on-surface-variant hover:text-white text-xs font-medium rounded-lg flex items-center justify-center gap-2 transition-all duration-150 active:scale-[0.99] cursor-pointer"
+              >
+                <span>Continue as Guest (Demo Mode)</span>
+                <ArrowRight className="w-3.5 h-3.5 opacity-70" />
+              </button>
+            </div>
 
             {/* Bottom Toggle Prompt */}
             <div className="mt-6 text-center">

@@ -90,7 +90,7 @@ function OnboardingContent() {
             >
               <AddFirstQuestStep
                 initialAttribute={selectedAttributes[0] || "intellect"}
-                onComplete={() => router.push("/")}
+                onComplete={() => router.push("/dashboard")}
               />
             </motion.div>
           )}
